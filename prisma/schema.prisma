@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model students {
+  student_id Int              @id @default(autoincrement())
+  name       String           @db.VarChar(100)
+  email      String           @unique(map: "email") @db.VarChar(100)
+  department String?          @db.VarChar(50)
+  year       Int?
+  created_at DateTime?        @default(now()) @db.Timestamp(0)
+  password   String?          @db.VarChar(255)
+  phone      String?          @db.VarChar(15)
+  is_active  Boolean?         @default(true)
+  gender     students_gender?
+  bookings   bookings[]
+}
+
+model admins {
+  admin_id   Int       @id @default(autoincrement())
+  name       String    @db.VarChar(100)
+  email      String    @unique(map: "email") @db.VarChar(100)
+  password   String    @db.VarChar(255)
+  role       String?   @default("admin") @db.VarChar(50)
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+}
+
+model hostels {
+  hostel_id      Int                    @id @default(autoincrement())
+  name           String                 @db.VarChar(100)
+  type           hostels_type
+  gender_allowed hostels_gender_allowed
+  address        String?                @db.Text
+  created_at     DateTime?              @default(now()) @db.Timestamp(0)
+  allowed_year   Int?                   @default(1)
+  rooms          rooms[]
+}
+
+model rooms {
+  room_id               Int             @id @default(autoincrement())
+  hostel_id             Int
+  room_number           String          @db.VarChar(20)
+  room_type             rooms_room_type
+  capacity              Int
+  price_per_month       Decimal         @db.Decimal(10, 2)
+  has_ac                Boolean?        @default(false)
+  has_attached_washroom Boolean?        @default(false)
+  created_at            DateTime?       @default(now()) @db.Timestamp(0)
+  beds                  beds[]
+  hostel                hostels         @relation(fields: [hostel_id], references: [hostel_id], onDelete: Cascade, onUpdate: NoAction, map: "rooms_ibfk_1")
+
+  @@unique([hostel_id, room_number], map: "unique_room")
+  @@index([hostel_id], map: "idx_hostel_id")
+}
+
+model beds {
+  bed_id     Int          @id @default(autoincrement())
+  room_id    Int
+  bed_number String       @db.VarChar(10)
+  status     beds_status? @default(available)
+  created_at DateTime?    @default(now()) @db.Timestamp(0)
+  room       rooms        @relation(fields: [room_id], references: [room_id], onDelete: Cascade, onUpdate: NoAction, map: "beds_ibfk_1")
+  bookings   bookings[]
+
+  @@unique([room_id, bed_number], map: "unique_bed")
+  @@index([room_id], map: "idx_room_id")
+  @@index([status], map: "idx_bed_status")
+}
+
+model bookings {
+  booking_id Int              @id @default(autoincrement())
+  student_id Int
+  bed_id     Int
+  start_date DateTime         @db.Date
+  end_date   DateTime         @db.Date
+  status     bookings_status? @default(pending)
+  created_at DateTime?        @default(now()) @db.Timestamp(0)
+  student    students         @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction, map: "bookings_ibfk_1")
+  bed        beds             @relation(fields: [bed_id], references: [bed_id], onDelete: Cascade, onUpdate: NoAction, map: "bookings_ibfk_2")
+  payments   payments[]
+
+  @@index([student_id], map: "idx_student_id")
+  @@index([bed_id], map: "idx_bed_id")
+  @@index([status], map: "idx_booking_status")
+}
+
+model payments {
+  payment_id     Int              @id @default(autoincrement())
+  booking_id     Int
+  amount         Decimal          @db.Decimal(10, 2)
+  mode           payments_mode?   @default(Online)
+  status         payments_status? @default(initiated)
+  transaction_id String?          @db.VarChar(100)
+  created_at     DateTime?        @default(now()) @db.Timestamp(0)
+  booking        bookings         @relation(fields: [booking_id], references: [booking_id], onDelete: Cascade, onUpdate: NoAction, map: "payments_ibfk_1")
+
+  @@index([booking_id], map: "idx_booking_id")
+  @@index([status], map: "idx_payment_status")
+}
+
+enum hostels_type {
+  Boys
+  Girls
+  Co_ed @map("Co-ed")
+}
+
+enum hostels_gender_allowed {
+  Male
+  Female
+  Any
+}
+
+enum rooms_room_type {
+  Single
+  Double
+  Triple
+  Quad
+}
+
+enum beds_status {
+  available
+  occupied
+  maintenance
+}
+
+enum bookings_status {
+  pending
+  active
+  cancelled
+  completed
+}
+
+enum payments_mode {
+  Online
+  UPI
+  Card
+  Cash
+}
+
+enum payments_status {
+  initiated
+  success
+  failed
+}
+
+enum students_gender {
+  Male
+  Female
+  Other
+}
