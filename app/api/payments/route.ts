@@ -16,6 +16,19 @@ export async function POST(request: Request) {
 
     const transactionId = crypto.randomUUID();
 
+    // Check if payment already exists for this booking
+    const existingPayment = await executeQuery(
+      "SELECT payment_id FROM payments WHERE booking_id = ? AND status = 'success'",
+      [booking_id]
+    );
+
+    if (existingPayment.length > 0) {
+      return NextResponse.json(
+        { success: false, error: "Payment already completed for this booking. You cannot pay twice for the same booking." },
+        { status: 400 }
+      );
+    }
+
     // Start Transaction (Simulated with sequential queries for now, ideally use a transaction block if supported by lib)
     // 1. Create Payment Record
     await executeQuery(

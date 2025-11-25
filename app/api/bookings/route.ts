@@ -5,9 +5,28 @@ import { callProcedure, executeQuery } from "@/lib/sql";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { student_id, bed_id, start_date, end_date } = body;
+    const { student_id, bed_id, start_date, end_date, semester } = body;
     
-    if (!student_id || !bed_id || !start_date || !end_date) {
+    let finalStartDate = start_date;
+    let finalEndDate = end_date;
+    
+    // If semester is provided, convert it to dates
+    if (semester) {
+      const { getSemesterDates } = await import('@/lib/semester');
+      const dates = getSemesterDates(semester);
+      
+      if (!dates) {
+        return NextResponse.json(
+          { success: false, error: "Invalid semester format" },
+          { status: 400 }
+        );
+      }
+      
+      finalStartDate = dates.start_date;
+      finalEndDate = dates.end_date;
+    }
+    
+    if (!student_id || !bed_id || !finalStartDate || !finalEndDate) {
       return NextResponse.json(
         { success: false, error: "All fields are required" },
         { status: 400 }
@@ -31,8 +50,8 @@ export async function POST(request: Request) {
     await callProcedure("AllocateBed", [
       student_id,
       bed_id,
-      start_date,
-      end_date,
+      finalStartDate,
+      finalEndDate,
     ]);
     
     // Get the ID of the newly created booking

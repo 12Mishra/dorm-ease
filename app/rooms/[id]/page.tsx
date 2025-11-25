@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
+import type { FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import NavBar from "@/components/NavBar";
+import { generateSemesters, type SemesterLabel } from "@/lib/semester";
 import {
   ArrowLeft,
   Building2,
@@ -16,6 +18,7 @@ import {
   Calendar,
   LogIn,
 } from "lucide-react";
+import type { User } from "@/lib/session";
 
 type Room = {
   room_id: number;
@@ -38,90 +41,145 @@ type Room = {
   }>;
 };
 
-type User = {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  hasBooking?: boolean;
+type BookingStatus = {
+  type: "success" | "error" | null;
+  message: string;
 };
 
-export default function RoomDetailsPage({ params }: { params: Promise<{ id: string }> }) {
-  const router = useRouter();
+type RoomResponse = {
+  success: boolean;
+  room?: Room;
+  error?: string;
+};
 
-  const [roomId, setRoomId] = useState<string | null>(null);
+export default function RoomDetailsPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const router = useRouter();
+  const roomId = params.id;
+
   const [room, setRoom] = useState<Room | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
   const [selectedBed, setSelectedBed] = useState<number | null>(null);
-  const [bookingData, setBookingData] = useState({
-    start_date: "",
-    end_date: "",
+  const [bookingData, setBookingData] = useState({ semester: "" });
+  const [bookingStatus, setBookingStatus] = useState<BookingStatus>({
+    type: null,
+    message: "",
   });
-  const [bookingStatus, setBookingStatus] = useState<{
-    type: "success" | "error" | null;
-    message: string;
-  }>({ type: null, message: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    params.then(({ id }) => {
-      setRoomId(id);
-    });
-  }, [params]);
-
-  useEffect(() => {
-    if (roomId) {
-      fetchRoomDetails();
-      fetchSession();
-    }
-  }, [roomId]);
-
-  const fetchSession = async () => {
+  const fetchSession = useCallback(async () => {
     try {
-      const res = await fetch("/api/auth/session");
-      const data = await res.json();
-      if (data.isLoggedIn) {
-        console.log("User is logged in", data.user);
-        setUser(data.user);
+      const res = await fetch("/api/auth/session", { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error("Failed to fetch session");
       }
-    } catch (error) {
-      console.error("Session fetch error:", error);
-    }
-  };
 
-  const fetchRoomDetails = async () => {
+      const data = await res.json();
+      if (data?.isLoggedIn) {
+        setUser(data.user as User);
+      } else {
+        setUser(null);
+      }
+    } catch (sessionError) {
+      console.error("Session fetch error:", sessionError);
+    }
+  }, []);
+
+  const fetchRoomDetails = useCallback(async () => {
+    if (!roomId) {
+      setError("Missing room identifier.");
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await fetch(`/api/rooms/${roomId}`);
-      const data = await response.json();
-      if (data.success) {
-        setRoom(data.room);
+      setError(null);
+
+      const response = await fetch(`/api/rooms/${roomId}`, {
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch room details.");
       }
-    } catch (error) {
-      console.error("Error fetching room details:", error);
+
+      const data: RoomResponse = await response.json();
+      if (!data.success || !data.room) {
+        throw new Error(data.error ?? "Room not found.");
+      }
+
+      setRoom(data.room);
+    } catch (fetchError) {
+      setRoom(null);
+      setError(
+        fetchError instanceof Error
+          ? fetchError.message
+          : "Unable to load room details."
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }, [roomId]);
+
+  useEffect(() => {
+    fetchSession();
+  }, [fetchSession]);
+
+  useEffect(() => {
+    fetchRoomDetails();
+  }, [fetchRoomDetails]);
 
   const handleBookBed = (bedId: number) => {
-    if (!user) {
-      router.push("/login?redirect=/rooms/" + roomId);
-      return;
-    }
     setSelectedBed(bedId);
+    setBookingData({ semester: "" });
+    setBookingStatus({ type: null, message: "" });
     setShowBookingDialog(true);
+  };
+
+  const handleDialogClose = () => {
+    setShowBookingDialog(false);
+    setSelectedBed(null);
+    setBookingData({ semester: "" });
     setBookingStatus({ type: null, message: "" });
   };
 
-  const handleBookingSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
+  const handleBookingSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
-    setBookingStatus({ type: null, message: "" });
+    if (!user || user.role !== "student") {
+      setBookingStatus({
+        type: "error",
+        message: "Only students can book a bed.",
+      });
+      return;
+    }
+
+    if (!selectedBed) {
+      setBookingStatus({
+        type: "error",
+        message: "Please select a bed to continue.",
+      });
+      return;
+    }
+
+    if (!bookingData.semester) {
+      setBookingStatus({
+        type: "error",
+        message: "Select a semester before confirming.",
+      });
+      return;
+    }
 
     try {
+      setIsSubmitting(true);
+      setBookingStatus({ type: null, message: "" });
+
       const response = await fetch("/api/bookings", {
         method: "POST",
         headers: {
@@ -130,41 +188,93 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ id: stri
         body: JSON.stringify({
           student_id: user.id,
           bed_id: selectedBed,
-          start_date: bookingData.start_date,
-          end_date: bookingData.end_date,
+          semester: bookingData.semester,
         }),
       });
 
       const data = await response.json();
-
-      if (data.success) {
-        setBookingStatus({
-          type: "success",
-          message: "Booking created! Redirecting to payment...",
-        });
-        setTimeout(() => {
-          router.push(`/payments/${data.booking_id}`);
-        }, 1500);
-      } else {
-        setBookingStatus({
-          type: "error",
-          message: data.error || "Failed to create booking",
-        });
+      if (!response.ok || !data.success) {
+        throw new Error(data.error ?? "Failed to create booking.");
       }
-    } catch (error: any) {
+
+      setBookingStatus({
+        type: "success",
+        message: data.message ?? "Bed booked successfully.",
+      });
+
+      setUser((prev) => (prev ? { ...prev, hasBooking: true } : prev));
+
+      // If the API returned a booking_id, navigate to the payment page for that booking.
+      const bookingId = data.booking_id ?? data.booking?.booking_id;
+
+      // brief pause to show the success message
+      await new Promise((resolve) => setTimeout(resolve, 900));
+
+      handleDialogClose();
+
+      if (bookingId) {
+        // Navigate to payment page so user can complete semester payment
+        await router.push(`/payments/${bookingId}`);
+      } else {
+        // Fallback: refresh room data and UI
+        await fetchRoomDetails();
+        router.refresh();
+      }
+    } catch (submissionError) {
       setBookingStatus({
         type: "error",
-        message: error.message || "An error occurred",
+        message:
+          submissionError instanceof Error
+            ? submissionError.message
+            : "Failed to create booking.",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-solid border-indigo-600 border-r-transparent"></div>
-          <p className="mt-4 text-gray-600 font-medium">Loading room details...</p>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50">
+        <NavBar />
+        <div className="flex items-center justify-center py-24">
+          <div className="text-center">
+            <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-indigo-600 border-r-transparent"></div>
+            <p className="mt-4 text-gray-600 font-medium">
+              Loading room details...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50">
+        <NavBar />
+        <div className="flex items-center justify-center py-24 px-4">
+          <div className="max-w-md text-center bg-white/80 backdrop-blur rounded-2xl shadow-lg p-8 border border-gray-100">
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              Unable to load room
+            </h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                type="button"
+                onClick={fetchRoomDetails}
+                className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Try Again
+              </button>
+              <Link
+                href="/hostels"
+                className="px-6 py-2 border border-indigo-600 text-indigo-600 font-semibold rounded-lg hover:bg-indigo-50 transition-colors"
+              >
+                Back to Hostels
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -172,18 +282,32 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ id: stri
 
   if (!room) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600 text-lg mb-4">Room not found</p>
-          <Link href="/hostels" className="text-indigo-600 hover:text-indigo-700 font-medium">
-            Back to Hostels
-          </Link>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50">
+        <NavBar />
+        <div className="flex items-center justify-center py-24 px-4">
+          <div className="max-w-md text-center bg-white/80 backdrop-blur rounded-2xl shadow-lg p-8 border border-gray-100">
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              Room not found
+            </h2>
+            <p className="text-gray-600 mb-6">
+              The room you are looking for does not exist.
+            </p>
+            <Link
+              href="/hostels"
+              className="inline-flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Hostels
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
-  const availableBeds = room.beds.filter(bed => bed.bed_status === "available").length;
+  const availableBeds = room.beds.filter(
+    (bed) => bed.bed_status === "available"
+  ).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50">
@@ -198,7 +322,6 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ id: stri
           Back to Rooms
         </Link>
 
-        {/* Room Details Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-6 border border-gray-100">
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
             <div>
@@ -221,19 +344,25 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ id: stri
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 py-6 border-t border-b border-gray-100">
             <div>
               <p className="text-sm text-gray-500 mb-1">Room Type</p>
-              <p className="text-lg font-semibold text-gray-900">{room.room_type}</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {room.room_type}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500 mb-1 flex items-center gap-1">
                 <Users className="w-3 h-3" /> Capacity
               </p>
-              <p className="text-lg font-semibold text-gray-900">{room.capacity} beds</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {room.capacity} beds
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500 mb-1 flex items-center gap-1">
                 <Wind className="w-3 h-3" /> Air Conditioning
               </p>
-              <p className="text-lg font-semibold text-gray-900">{room.has_ac ? "Yes" : "No"}</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {room.has_ac ? "Yes" : "No"}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500 mb-1 flex items-center gap-1">
@@ -248,23 +377,30 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ id: stri
           <div className="pt-6 flex flex-wrap gap-6">
             <div>
               <p className="text-sm text-gray-500 mb-1">Hostel Type</p>
-              <p className="text-base font-medium text-gray-900">{room.hostel.hostel_type} Hostel</p>
+              <p className="text-base font-medium text-gray-900">
+                {room.hostel.hostel_type} Hostel
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500 mb-1">Gender Allowed</p>
-              <p className="text-base font-medium text-gray-900">{room.hostel.gender_allowed}</p>
+              <p className="text-base font-medium text-gray-900">
+                {room.hostel.gender_allowed}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500 mb-1">Available Beds</p>
-              <p className="text-base font-semibold text-green-600">{availableBeds} of {room.capacity}</p>
+              <p className="text-base font-semibold text-green-600">
+                {availableBeds} of {room.capacity}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Beds Availability */}
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Bed Availability</h2>
+            <h2 className="text-2xl font-bold text-gray-900">
+              Bed Availability
+            </h2>
             {!user && (
               <div className="text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
                 Login to book a bed
@@ -283,7 +419,9 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ id: stri
                     <Bed className="w-6 h-6 text-indigo-600" />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">Bed {bed.bed_number}</p>
+                    <p className="font-semibold text-gray-900">
+                      Bed {bed.bed_number}
+                    </p>
                     <div className="flex items-center gap-2 mt-1">
                       {bed.bed_status === "available" ? (
                         <span className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
@@ -303,8 +441,8 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ id: stri
                     </div>
                   </div>
                 </div>
-                {bed.bed_status === "available" && (
-                  user ? (
+                {bed.bed_status === "available" &&
+                  (user ? (
                     user.hasBooking ? (
                       <button
                         disabled
@@ -328,15 +466,13 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ id: stri
                       <LogIn className="w-4 h-4" />
                       Login to Book
                     </Link>
-                  )
-                )}
+                  ))}
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Booking Dialog */}
       {showBookingDialog && user && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gray-100">
@@ -356,41 +492,38 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ id: stri
                   {user.name} ({user.email})
                 </div>
               </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={bookingData.start_date}
-                  onChange={(e) =>
-                    setBookingData({ ...bookingData, start_date: e.target.value })
-                  }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
+
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  End Date
+                  Semester
                 </label>
-                <input
-                  type="date"
+                <select
                   required
-                  value={bookingData.end_date}
-                  onChange={(e) =>
-                    setBookingData({ ...bookingData, end_date: e.target.value })
+                  value={bookingData.semester}
+                  onChange={(event) =>
+                    setBookingData({
+                      ...bookingData,
+                      semester: event.target.value,
+                    })
                   }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                >
+                  <option value="">Select a semester</option>
+                  {generateSemesters().map((semester: SemesterLabel) => (
+                    <option key={semester} value={semester}>
+                      {semester}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {bookingStatus.type && (
                 <div
-                  className={`mb-6 p-4 rounded-lg flex items-start gap-3 ${bookingStatus.type === "success"
-                    ? "bg-green-50 text-green-800 border border-green-200"
-                    : "bg-red-50 text-red-800 border border-red-200"
-                    }`}
+                  className={`mb-6 p-4 rounded-lg flex items-start gap-3 ${
+                    bookingStatus.type === "success"
+                      ? "bg-green-50 text-green-800 border border-green-200"
+                      : "bg-red-50 text-red-800 border border-red-200"
+                  }`}
                 >
                   {bookingStatus.type === "success" ? (
                     <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
@@ -404,16 +537,18 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ id: stri
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowBookingDialog(false)}
+                  onClick={handleDialogClose}
                   className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-all shadow hover:shadow-lg"
+                  className="flex-1 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-all shadow hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={isSubmitting}
                 >
-                  Confirm
+                  {isSubmitting ? "Processing..." : "Confirm"}
                 </button>
               </div>
             </form>
