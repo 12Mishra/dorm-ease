@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { callProcedure, executeQuery } from "@/lib/sql";
+import { executeQuery } from "@/lib/sql";
 
 // POST /api/bookings - Create booking using stored procedure
 export async function POST(request: Request) {
@@ -14,42 +14,75 @@ export async function POST(request: Request) {
       );
     }
     
-    // Check if student already has an active or pending booking
-    const existingBookings = await executeQuery(
-      "SELECT COUNT(*) as count FROM bookings WHERE student_id = ? AND status IN ('active', 'pending')",
-      [student_id]
-    );
-
-    if (existingBookings[0].count > 0) {
+    
+    // Validate dates
+    if (new Date(end_date) <= new Date(start_date)) {
       return NextResponse.json(
-        { success: false, error: "You already have an active or pending booking." },
+        { success: false, error: "End date must be after start date" },
         { status: 400 }
       );
     }
-    // Call stored procedure AllocateBed
-    // Demonstrates: Stored procedure, Transaction, Trigger execution
-    await callProcedure("AllocateBed", [
-      student_id,
-      bed_id,
-      start_date,
-      end_date,
-    ]);
-    
-    // Get the ID of the newly created booking
-    // Since callProcedure doesn't return the ID directly for this procedure, 
-    // we fetch the latest booking for this student/bed.
-    const newBooking = await executeQuery(
-      "SELECT booking_id FROM bookings WHERE student_id = ? AND bed_id = ? ORDER BY created_at DESC LIMIT 1",
-      [student_id, bed_id]
+
+    // Check if bed exists and is available
+    const bedCheck = await executeQuery(
+      "SELECT status FROM beds WHERE bed_id = ?",
+      [bed_id]
+    );
+
+    if (bedCheck.length === 0) {
+      return NextResponse.json(
+        { success: false, error: "Bed not found" },
+        { status: 404 }
+      );
+    }
+
+    if (bedCheck[0].status !== 'available') {
+      return NextResponse.json(
+        { success: false, error: "Bed is not available" },
+        { status: 400 }
+      );
+    }
+
+    // Check for overlapping bookings
+    const overlappingBookings = await executeQuery(
+      `SELECT COUNT(*) as count FROM bookings 
+       WHERE bed_id = ? 
+       AND status IN ('pending', 'active')
+       AND (
+         (? BETWEEN start_date AND end_date) OR
+         (? BETWEEN start_date AND end_date) OR
+         (start_date BETWEEN ? AND ?)
+       )`,
+      [bed_id, start_date, end_date, start_date, end_date]
+    );
+
+    if (overlappingBookings[0].count > 0) {
+      return NextResponse.json(
+        { success: false, error: "Bed is already booked for the selected dates" },
+        { status: 400 }
+      );
+    }
+
+    // Create booking
+    const bookingResult = await executeQuery(
+      "INSERT INTO bookings (student_id, bed_id, start_date, end_date, status) VALUES (?, ?, ?, ?, 'pending')",
+      [student_id, bed_id, start_date, end_date]
+    );
+
+    const bookingId = (bookingResult as any).insertId;
+
+    // Update bed status to occupied
+    await executeQuery(
+      "UPDATE beds SET status = 'occupied' WHERE bed_id = ?",
+      [bed_id]
     );
 
     return NextResponse.json({ 
       success: true, 
       message: "Booking created successfully",
-      booking_id: newBooking[0]?.booking_id
+      booking_id: bookingId
     }, { status: 201 });
   } catch (error: any) {
-    // Trigger will throw error if bed already booked
     console.error("Booking error:", error);
     
     return NextResponse.json(

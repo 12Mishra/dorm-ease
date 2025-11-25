@@ -1,24 +1,6 @@
--- ============================================================================
--- DormEase Hostel Management System - Complete Database Schema
--- ============================================================================
--- This file contains the complete database schema including:
--- 1. Database creation and configuration
--- 2. Tables with constraints
--- 3. Indexes for performance optimization
--- 4. Views for data abstraction
--- 5. Stored functions for business logic
--- 6. Stored procedures with transaction management
--- 7. Triggers for data integrity
--- 8. Sample data (optional)
--- ============================================================================
 
--- Create database
 CREATE DATABASE IF NOT EXISTS hostelhive;
 USE hostelhive;
-
--- ============================================================================
--- SECTION 1: TABLE DEFINITIONS
--- ============================================================================
 
 -- Table: hostels
 CREATE TABLE IF NOT EXISTS hostels (
@@ -123,27 +105,126 @@ CREATE TABLE IF NOT EXISTS payments (
   INDEX idx_payment_status_date (status, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Table: booking_audit_log (for tracking status changes)
-CREATE TABLE IF NOT EXISTS booking_audit_log (
-  log_id INT AUTO_INCREMENT PRIMARY KEY,
-  booking_id INT NOT NULL,
-  old_status ENUM('pending', 'active', 'cancelled', 'completed'),
-  new_status ENUM('pending', 'active', 'cancelled', 'completed'),
-  changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_booking_audit (booking_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+-- Insert sample admin (password: admin123)
+INSERT INTO admins (name, email, password, role) VALUES
+('Super Admin', 'admin@dormease.com', '$2a$10$rQZ9vXqZ9vXqZ9vXqZ9vXOeKfNjKfNjKfNjKfNjKfNjKfNjKfNjKf', 'super_admin');
+
+-- Insert sample hostels
+INSERT INTO hostels (name, address, type, gender_allowed, total_rooms) VALUES
+('Vivek Hall', '123 Campus Road, North Wing', 'Boys', 'Male', 50),
+('Sarojini Hall', '456 University Avenue, East Block', 'Girls', 'Female', 40),
+('International House', '789 Global Street, Central Campus', 'Co-ed', 'Both', 60),
+('Nehru Hall', '321 Heritage Lane, South Campus', 'Boys', 'Male', 45),
+('Indira Hall', '654 Garden View, West Wing', 'Girls', 'Female', 35);
+
+-- Insert sample rooms for Vivek Hall (Boys)
+INSERT INTO rooms (hostel_id, room_number, room_type, capacity, price_per_month, has_ac, has_attached_washroom) VALUES
+(1, '101', 'Single', 1, 9500.00, FALSE, FALSE),
+(1, '102', 'Single', 1, 12000.00, TRUE, TRUE),
+(1, '103', 'Double', 2, 8000.00, FALSE, FALSE),
+(1, '104', 'Double', 2, 10000.00, TRUE, FALSE),
+(1, '105', 'Triple', 3, 7000.00, FALSE, FALSE);
+
+-- Insert sample rooms for Sarojini Hall (Girls)
+INSERT INTO rooms (hostel_id, room_number, room_type, capacity, price_per_month, has_ac, has_attached_washroom) VALUES
+(2, '201', 'Single', 1, 10000.00, FALSE, TRUE),
+(2, '202', 'Double', 2, 8500.00, FALSE, FALSE),
+(2, '203', 'Double', 2, 11000.00, TRUE, TRUE),
+(2, '204', 'Triple', 3, 7500.00, FALSE, FALSE);
+
+-- Insert sample rooms for International House (Co-ed)
+INSERT INTO rooms (hostel_id, room_number, room_type, capacity, price_per_month, has_ac, has_attached_washroom) VALUES
+(3, '301', 'Single', 1, 11000.00, TRUE, TRUE),
+(3, '302', 'Double', 2, 9000.00, FALSE, TRUE),
+(3, '303', 'Triple', 3, 8000.00, FALSE, FALSE),
+(3, '304', 'Quad', 4, 7000.00, FALSE, FALSE);
+
+-- Insert sample rooms for Nehru Hall (Boys)
+INSERT INTO rooms (hostel_id, room_number, room_type, capacity, price_per_month, has_ac, has_attached_washroom) VALUES
+(4, '401', 'Single', 1, 9000.00, FALSE, FALSE),
+(4, '402', 'Double', 2, 7500.00, FALSE, FALSE),
+(4, '403', 'Triple', 3, 6500.00, FALSE, FALSE);
+
+-- Insert sample rooms for Indira Hall (Girls)
+INSERT INTO rooms (hostel_id, room_number, room_type, capacity, price_per_month, has_ac, has_attached_washroom) VALUES
+(5, '501', 'Single', 1, 10500.00, TRUE, TRUE),
+(5, '502', 'Double', 2, 9000.00, FALSE, TRUE),
+(5, '503', 'Triple', 3, 7500.00, FALSE, FALSE);
+
+-- Insert beds for all rooms
+-- Single rooms - 1 bed each
+INSERT INTO beds (room_id, bed_number, status)
+SELECT room_id, 1, 'available'
+FROM rooms WHERE room_type = 'Single';
+
+-- Double rooms - 2 beds each
+INSERT INTO beds (room_id, bed_number, status)
+SELECT room_id, 1, 'available' FROM rooms WHERE room_type = 'Double'
+UNION ALL
+SELECT room_id, 2, 'available' FROM rooms WHERE room_type = 'Double';
+
+-- Triple rooms - 3 beds each
+INSERT INTO beds (room_id, bed_number, status)
+SELECT room_id, 1, 'available' FROM rooms WHERE room_type = 'Triple'
+UNION ALL
+SELECT room_id, 2, 'available' FROM rooms WHERE room_type = 'Triple'
+UNION ALL
+SELECT room_id, 3, 'available' FROM rooms WHERE room_type = 'Triple';
+
+-- Quad rooms - 4 beds each
+INSERT INTO beds (room_id, bed_number, status)
+SELECT room_id, 1, 'available' FROM rooms WHERE room_type = 'Quad'
+UNION ALL
+SELECT room_id, 2, 'available' FROM rooms WHERE room_type = 'Quad'
+UNION ALL
+SELECT room_id, 3, 'available' FROM rooms WHERE room_type = 'Quad'
+UNION ALL
+SELECT room_id, 4, 'available' FROM rooms WHERE room_type = 'Quad';
+
+-- Insert sample students
+INSERT INTO students (name, email, password, phone, gender, department, year) VALUES
+('Rahul Sharma', 'rahul.sharma@example.com', '$2a$10$hashedpassword1', '9876543210', 'Male', 'Computer Science', 2),
+('Priya Patel', 'priya.patel@example.com', '$2a$10$hashedpassword2', '9876543211', 'Female', 'Electronics', 3),
+('Amit Kumar', 'amit.kumar@example.com', '$2a$10$hashedpassword3', '9876543212', 'Male', 'Mechanical', 1),
+('Sneha Reddy', 'sneha.reddy@example.com', '$2a$10$hashedpassword4', '9876543213', 'Female', 'Civil Engineering', 2),
+('Vikram Singh', 'vikram.singh@example.com', '$2a$10$hashedpassword5', '9876543214', 'Male', 'Computer Science', 4);
+
+
+SELECT student_id, name, email, password, gender, department, year 
+FROM students 
+WHERE email = 'rahul.sharma@example.com';
+
+-- Login - Admin
+-- Used by: /api/auth/login
+SELECT admin_id, name, email, password, role 
+FROM admins 
+WHERE email = 'admin@dormease.com';
+
+SELECT h.*, 
+       (SELECT COUNT(*) FROM rooms WHERE hostel_id = h.hostel_id) as room_count
+FROM hostels h
+ORDER BY name ASC;
+
+-- Get hostels filtered by gender (for students)
+-- Used by: /api/hostels GET (when logged in as student)
+SELECT h.*,
+       (SELECT COUNT(*) FROM rooms WHERE hostel_id = h.hostel_id) as room_count
+FROM hostels h
+WHERE gender_allowed = 'Male'  -- or 'Female' based on student gender
+ORDER BY name ASC;
+
+-- Create new hostel
+-- Used by: /api/hostels POST
+INSERT INTO hostels (name, type, gender_allowed, address, total_rooms)
+VALUES ('New Hostel', 'Boys', 'Male', '123 Street', 50);
 
 -- ============================================================================
--- SECTION 2: VIEWS (Data Abstraction Layer)
+-- 3. ROOMS API (/api/rooms/*)
 -- ============================================================================
 
--- View 1: Available Rooms Summary
-CREATE OR REPLACE VIEW available_rooms_summary AS
+-- Get all rooms with bed availability
+-- Used by: /api/rooms GET
 SELECT 
-  h.hostel_id,
-  h.name AS hostel_name,
-  h.type AS hostel_type,
-  h.gender_allowed,
   r.room_id,
   r.room_number,
   r.room_type,
@@ -151,497 +232,411 @@ SELECT
   r.price_per_month,
   r.has_ac,
   r.has_attached_washroom,
+  h.hostel_id,
+  h.name AS hostel_name,
+  h.type AS hostel_type,
+  h.gender_allowed,
   COUNT(b.bed_id) AS total_beds,
   COUNT(CASE WHEN b.status = 'available' THEN 1 END) AS available_beds,
   COUNT(CASE WHEN b.status = 'occupied' THEN 1 END) AS occupied_beds
-FROM hostels h
-INNER JOIN rooms r ON h.hostel_id = r.hostel_id
-INNER JOIN beds b ON r.room_id = b.room_id
-GROUP BY h.hostel_id, h.name, h.type, h.gender_allowed, 
-         r.room_id, r.room_number, r.room_type, r.capacity, 
-         r.price_per_month, r.has_ac, r.has_attached_washroom
-HAVING available_beds > 0;
+FROM rooms r
+INNER JOIN hostels h ON r.hostel_id = h.hostel_id
+LEFT JOIN beds b ON b.room_id = r.room_id
+GROUP BY r.room_id, r.room_number, r.room_type, r.capacity, 
+         r.price_per_month, r.has_ac, r.has_attached_washroom,
+         h.hostel_id, h.name, h.type, h.gender_allowed
+ORDER BY r.price_per_month ASC;
 
--- View 2: Student Booking Details
-CREATE OR REPLACE VIEW student_booking_details AS
+-- Get rooms filtered by hostel
+-- Used by: /api/rooms GET?hostel_id=1
 SELECT 
+  r.room_id,
+  r.room_number,
+  r.room_type,
+  r.capacity,
+  r.price_per_month,
+  r.has_ac,
+  r.has_attached_washroom,
+  h.hostel_id,
+  h.name AS hostel_name,
+  h.type AS hostel_type,
+  h.gender_allowed,
+  COUNT(b.bed_id) AS total_beds,
+  COUNT(CASE WHEN b.status = 'available' THEN 1 END) AS available_beds,
+  COUNT(CASE WHEN b.status = 'occupied' THEN 1 END) AS occupied_beds
+FROM rooms r
+INNER JOIN hostels h ON r.hostel_id = h.hostel_id
+LEFT JOIN beds b ON b.room_id = r.room_id
+WHERE r.hostel_id = 1
+GROUP BY r.room_id, r.room_number, r.room_type, r.capacity, 
+         r.price_per_month, r.has_ac, r.has_attached_washroom,
+         h.hostel_id, h.name, h.type, h.gender_allowed
+ORDER BY r.price_per_month ASC;
+
+-- Get rooms filtered by price range
+-- Used by: /api/rooms GET?min_price=5000&max_price=10000
+SELECT 
+  r.room_id,
+  r.room_number,
+  r.room_type,
+  r.capacity,
+  r.price_per_month,
+  r.has_ac,
+  r.has_attached_washroom,
+  h.hostel_id,
+  h.name AS hostel_name,
+  h.type AS hostel_type,
+  h.gender_allowed,
+  COUNT(b.bed_id) AS total_beds,
+  COUNT(CASE WHEN b.status = 'available' THEN 1 END) AS available_beds,
+  COUNT(CASE WHEN b.status = 'occupied' THEN 1 END) AS occupied_beds
+FROM rooms r
+INNER JOIN hostels h ON r.hostel_id = h.hostel_id
+LEFT JOIN beds b ON b.room_id = r.room_id
+WHERE r.price_per_month BETWEEN 5000 AND 10000
+GROUP BY r.room_id, r.room_number, r.room_type, r.capacity, 
+         r.price_per_month, r.has_ac, r.has_attached_washroom,
+         h.hostel_id, h.name, h.type, h.gender_allowed
+ORDER BY r.price_per_month ASC;
+
+-- Get single room details with beds
+-- Used by: /api/rooms/[id] GET
+SELECT 
+  r.room_id,
+  r.room_number,
+  r.room_type,
+  r.capacity,
+  r.price_per_month,
+  r.has_ac,
+  r.has_attached_washroom,
+  h.hostel_id,
+  h.name AS hostel_name,
+  h.type AS hostel_type,
+  h.gender_allowed,
+  b.bed_id,
+  b.bed_number,
+  b.status AS bed_status
+FROM rooms r
+INNER JOIN hostels h ON r.hostel_id = h.hostel_id
+LEFT JOIN beds b ON b.room_id = r.room_id
+WHERE r.room_id = 1
+ORDER BY b.bed_number;
+
+-- ============================================================================
+-- 4. AVAILABILITY API (/api/availability)
+-- ============================================================================
+
+-- Get all available beds (not currently booked)
+-- Used by: /api/availability GET
+SELECT 
+  b.bed_id,
+  b.bed_number,
+  b.status,
+  r.room_id,
+  r.room_number,
+  r.room_type,
+  r.price_per_month,
+  r.has_ac,
+  r.has_attached_washroom,
+  h.hostel_id,
+  h.name AS hostel_name,
+  h.type AS hostel_type
+FROM beds b
+INNER JOIN rooms r ON b.room_id = r.room_id
+INNER JOIN hostels h ON r.hostel_id = h.hostel_id
+WHERE b.status = 'available'
+  AND b.bed_id NOT IN (
+    SELECT bed_id 
+    FROM bookings 
+    WHERE status IN ('pending', 'active')
+      AND CURDATE() BETWEEN start_date AND end_date
+  )
+ORDER BY h.name, r.room_number, b.bed_number;
+
+-- ============================================================================
+-- 5. BOOKINGS API (/api/bookings)
+-- ============================================================================
+
+-- Get all bookings with full details
+-- Used by: /api/bookings GET
+SELECT 
+  bk.booking_id,
+  bk.start_date,
+  bk.end_date,
+  bk.status AS booking_status,
+  bk.created_at,
   s.student_id,
   s.name AS student_name,
   s.email AS student_email,
   s.department,
   s.year,
+  h.hostel_id,
+  h.name AS hostel_name,
+  h.type AS hostel_type,
+  r.room_id,
+  r.room_number,
+  r.room_type,
+  r.price_per_month,
+  b.bed_id,
+  b.bed_number,
+  b.status AS bed_status
+FROM bookings bk
+INNER JOIN students s ON s.student_id = bk.student_id
+INNER JOIN beds b ON b.bed_id = bk.bed_id
+INNER JOIN rooms r ON r.room_id = b.room_id
+INNER JOIN hostels h ON h.hostel_id = r.hostel_id
+ORDER BY bk.created_at DESC;
+
+-- Get single booking by ID
+-- Used by: /api/bookings GET?id=1
+SELECT 
   bk.booking_id,
   bk.start_date,
   bk.end_date,
   bk.status AS booking_status,
-  bk.created_at AS booking_date,
+  bk.created_at,
+  s.student_id,
+  s.name AS student_name,
+  s.email AS student_email,
+  s.department,
+  s.year,
+  h.hostel_id,
   h.name AS hostel_name,
   h.type AS hostel_type,
+  r.room_id,
   r.room_number,
   r.room_type,
   r.price_per_month,
+  b.bed_id,
   b.bed_number,
   b.status AS bed_status
-FROM students s
-INNER JOIN bookings bk ON s.student_id = bk.student_id
-INNER JOIN beds b ON bk.bed_id = b.bed_id
-INNER JOIN rooms r ON b.room_id = r.room_id
-INNER JOIN hostels h ON r.hostel_id = h.hostel_id;
+FROM bookings bk
+INNER JOIN students s ON s.student_id = bk.student_id
+INNER JOIN beds b ON b.bed_id = bk.bed_id
+INNER JOIN rooms r ON r.room_id = b.room_id
+INNER JOIN hostels h ON h.hostel_id = r.hostel_id
+WHERE bk.booking_id = 1;
 
--- View 3: Monthly Revenue Report
-CREATE OR REPLACE VIEW monthly_revenue_report AS
+-- Create new booking (validation queries)
+-- Used by: /api/bookings POST
+
+-- Step 1: Check if bed exists and is available
+SELECT status FROM beds WHERE bed_id = 1;
+
+-- Step 2: Check for overlapping bookings
+SELECT COUNT(*) as count FROM bookings 
+WHERE bed_id = 1
+AND status IN ('pending', 'active')
+AND (
+  ('2025-01-01' BETWEEN start_date AND end_date) OR
+  ('2025-06-30' BETWEEN start_date AND end_date) OR
+  (start_date BETWEEN '2025-01-01' AND '2025-06-30')
+);
+
+-- Step 3: Create booking
+INSERT INTO bookings (student_id, bed_id, start_date, end_date, status) 
+VALUES (1, 1, '2025-01-01', '2025-06-30', 'pending');
+
+-- Step 4: Update bed status
+UPDATE beds SET status = 'occupied' WHERE bed_id = 1;
+
+-- ============================================================================
+-- 6. STUDENTS API (/api/students/*)
+-- ============================================================================
+
+-- Get all students
+-- Used by: /api/students GET
+SELECT student_id, name, email, department, year, created_at
+FROM students
+ORDER BY created_at DESC;
+
+-- Create new student
+-- Used by: /api/students POST
+INSERT INTO students (name, email, password, phone, gender, department, year)
+VALUES ('John Doe', 'john@example.com', 'hashed_password', '1234567890', 'Male', 'CS', 2);
+
+-- Get student's bookings
+-- Used by: /api/students/[id]/booking GET
 SELECT 
-  YEAR(p.created_at) AS year,
-  MONTH(p.created_at) AS month,
-  h.hostel_id,
+  bk.booking_id,
+  bk.start_date,
+  bk.end_date,
+  bk.status,
   h.name AS hostel_name,
-  COUNT(p.payment_id) AS total_transactions,
-  COUNT(CASE WHEN p.status = 'success' THEN 1 END) AS successful_payments,
-  SUM(CASE WHEN p.status = 'success' THEN p.amount ELSE 0 END) AS total_revenue,
-  AVG(CASE WHEN p.status = 'success' THEN p.amount ELSE NULL END) AS avg_payment_amount
-FROM payments p
-INNER JOIN bookings bk ON p.booking_id = bk.booking_id
+  r.room_number,
+  r.room_type,
+  r.price_per_month,
+  b.bed_number
+FROM bookings bk
 INNER JOIN beds b ON bk.bed_id = b.bed_id
 INNER JOIN rooms r ON b.room_id = r.room_id
 INNER JOIN hostels h ON r.hostel_id = h.hostel_id
-GROUP BY YEAR(p.created_at), MONTH(p.created_at), h.hostel_id, h.name;
+WHERE bk.student_id = 1
+ORDER BY bk.created_at DESC;
 
--- View 4: Hostel Occupancy Overview
-CREATE OR REPLACE VIEW hostel_occupancy_overview AS
+-- Get student's payments
+-- Used by: /api/students/[id]/payments GET
+SELECT 
+  p.payment_id,
+  p.amount,
+  p.mode,
+  p.status,
+  p.transaction_id,
+  p.created_at,
+  bk.booking_id,
+  bk.start_date,
+  bk.end_date
+FROM payments p
+INNER JOIN bookings bk ON p.booking_id = bk.booking_id
+WHERE bk.student_id = 1
+ORDER BY p.created_at DESC;
+
+-- Step 1: Create payment record
+INSERT INTO payments (booking_id, amount, mode, status, transaction_id) 
+VALUES (1, 9500.00, 'UPI', 'success', 'TXN123456');
+
+-- Step 2: Update booking status to active
+UPDATE bookings SET status = 'active' WHERE booking_id = 1;
+
+-- Step 3: Get bed_id from booking
+SELECT bed_id FROM bookings WHERE booking_id = 1;
+
+-- Step 4: Update bed status to occupied
+UPDATE beds SET status = 'occupied' WHERE bed_id = 1;
+
+-- ============================================================================
+-- 8. ADMIN STATS API (/api/admin/stats)
+-- ============================================================================
+
+-- Get hostel occupancy statistics
+-- Used by: /api/admin/stats GET
 SELECT 
   h.hostel_id,
   h.name AS hostel_name,
   h.type AS hostel_type,
-  h.gender_allowed,
   COUNT(DISTINCT r.room_id) AS total_rooms,
-  COUNT(b.bed_id) AS total_beds,
-  COUNT(CASE WHEN b.status = 'available' THEN 1 END) AS available_beds,
-  COUNT(CASE WHEN b.status = 'occupied' THEN 1 END) AS occupied_beds,
-  ROUND((COUNT(CASE WHEN b.status = 'occupied' THEN 1 END) / COUNT(b.bed_id)) * 100, 2) AS occupancy_rate
+  COUNT(DISTINCT bd.bed_id) AS total_beds,
+  COUNT(CASE WHEN bd.status = 'occupied' THEN 1 END) AS occupied_beds,
+  COUNT(CASE WHEN bd.status = 'available' THEN 1 END) AS available_beds,
+  COUNT(DISTINCT bk.booking_id) AS active_bookings,
+  ROUND(
+    (COUNT(CASE WHEN bd.status = 'occupied' THEN 1 END) / COUNT(DISTINCT bd.bed_id) * 100), 
+    2
+  ) AS occupancy_rate
 FROM hostels h
-INNER JOIN rooms r ON h.hostel_id = r.hostel_id
-INNER JOIN beds b ON r.room_id = b.room_id
+LEFT JOIN rooms r ON r.hostel_id = h.hostel_id
+LEFT JOIN beds bd ON bd.room_id = r.room_id
+LEFT JOIN bookings bk ON bk.bed_id = bd.bed_id AND bk.status = 'active'
+GROUP BY h.hostel_id, h.name, h.type
+ORDER BY h.name;
+
+-- Get revenue by hostel
+-- Used by: /api/admin/stats GET
+SELECT 
+  h.hostel_id,
+  h.name AS hostel_name,
+  COUNT(DISTINCT bk.booking_id) AS total_bookings,
+  SUM(p.amount) AS total_revenue,
+  AVG(p.amount) AS avg_payment,
+  COUNT(DISTINCT p.payment_id) AS successful_payments
+FROM hostels h
+JOIN rooms r ON r.hostel_id = h.hostel_id
+JOIN beds bd ON bd.room_id = r.room_id
+JOIN bookings bk ON bk.bed_id = bd.bed_id
+JOIN payments p ON p.booking_id = bk.booking_id
+WHERE p.status = 'success'
+GROUP BY h.hostel_id, h.name
+ORDER BY h.name;
+
+-- Get overall summary statistics
+-- Used by: /api/admin/stats GET
+SELECT 
+  COUNT(DISTINCT s.student_id) AS total_students,
+  COUNT(DISTINCT bk.booking_id) AS total_bookings,
+  COUNT(CASE WHEN bk.status = 'active' THEN 1 END) AS active_bookings,
+  COUNT(CASE WHEN bk.status = 'pending' THEN 1 END) AS pending_bookings,
+  COUNT(CASE WHEN bk.status = 'completed' THEN 1 END) AS completed_bookings,
+  SUM(CASE WHEN p.status = 'success' THEN p.amount ELSE 0 END) AS total_revenue,
+  AVG(CASE WHEN p.status = 'success' THEN p.amount END) AS avg_payment,
+  COUNT(DISTINCT h.hostel_id) AS total_hostels,
+  COUNT(DISTINCT r.room_id) AS total_rooms,
+  COUNT(DISTINCT b.bed_id) AS total_beds,
+  COUNT(CASE WHEN b.status = 'available' THEN 1 END) AS available_beds,
+  COUNT(CASE WHEN b.status = 'occupied' THEN 1 END) AS occupied_beds
+FROM students s
+LEFT JOIN bookings bk ON bk.student_id = s.student_id
+LEFT JOIN payments p ON p.booking_id = bk.booking_id
+LEFT JOIN beds b ON b.bed_id = bk.bed_id
+LEFT JOIN rooms r ON r.room_id = b.room_id
+LEFT JOIN hostels h ON h.hostel_id = r.hostel_id;
+
+-- Get recent bookings
+-- Used by: /api/admin/stats GET
+SELECT 
+  bk.booking_id,
+  s.name AS student_name,
+  h.name AS hostel_name,
+  r.room_number,
+  b.bed_number,
+  bk.start_date,
+  bk.end_date,
+  bk.status,
+  bk.created_at
+FROM bookings bk
+INNER JOIN students s ON s.student_id = bk.student_id
+INNER JOIN beds b ON b.bed_id = bk.bed_id
+INNER JOIN rooms r ON r.room_id = b.room_id
+INNER JOIN hostels h ON h.hostel_id = r.hostel_id
+ORDER BY bk.created_at DESC
+LIMIT 10;
+
+-- ============================================================================
+-- 9. ADMIN STUDENTS API (/api/admin/students)
+-- ============================================================================
+
+-- Get all students (admin view)
+-- Used by: /api/admin/students GET
+SELECT 
+  s.student_id,
+  s.name,
+  s.email,
+  s.phone,
+  s.gender,
+  s.department,
+  s.year,
+  s.created_at,
+  COUNT(bk.booking_id) AS total_bookings,
+  MAX(CASE WHEN bk.status IN ('active', 'pending') THEN 1 ELSE 0 END) AS has_active_booking
+FROM students s
+LEFT JOIN bookings bk ON bk.student_id = s.student_id
+GROUP BY s.student_id, s.name, s.email, s.phone, s.gender, s.department, s.year, s.created_at
+ORDER BY s.created_at DESC;
+
+-- ============================================================================
+-- TESTING QUERIES
+-- ============================================================================
+-- Use these queries to test the database after setup
+
+-- Test 1: Check all hostels with room counts
+SELECT h.name, h.type, h.gender_allowed, COUNT(r.room_id) as room_count
+FROM hostels h
+LEFT JOIN rooms r ON h.hostel_id = r.hostel_id
 GROUP BY h.hostel_id, h.name, h.type, h.gender_allowed;
 
--- ============================================================================
--- SECTION 3: STORED FUNCTIONS (Business Logic)
--- ============================================================================
+-- Test 2: Check bed availability
+SELECT 
+  h.name AS hostel,
+  COUNT(b.bed_id) AS total_beds,
+  COUNT(CASE WHEN b.status = 'available' THEN 1 END) AS available,
+  COUNT(CASE WHEN b.status = 'occupied' THEN 1 END) AS occupied
+FROM beds b
+JOIN rooms r ON b.room_id = r.room_id
+JOIN hostels h ON r.hostel_id = h.hostel_id
+GROUP BY h.hostel_id, h.name;
 
-DELIMITER //
+-- Test 3: Check sample students
+SELECT student_id, name, email, gender, department, year FROM students;
 
--- Function 1: Calculate Occupancy Rate for a Hostel
-CREATE FUNCTION GetOccupancyRate(p_hostel_id INT) 
-RETURNS DECIMAL(5,2)
-DETERMINISTIC
-READS SQL DATA
-BEGIN
-  DECLARE total_beds INT DEFAULT 0;
-  DECLARE occupied_beds INT DEFAULT 0;
-  DECLARE occupancy_rate DECIMAL(5,2) DEFAULT 0.00;
-  
-  SELECT COUNT(*) INTO total_beds
-  FROM beds b
-  INNER JOIN rooms r ON b.room_id = r.room_id
-  WHERE r.hostel_id = p_hostel_id;
-  
-  SELECT COUNT(*) INTO occupied_beds
-  FROM beds b
-  INNER JOIN rooms r ON b.room_id = r.room_id
-  WHERE r.hostel_id = p_hostel_id AND b.status = 'occupied';
-  
-  IF total_beds > 0 THEN
-    SET occupancy_rate = (occupied_beds / total_beds) * 100;
-  END IF;
-  
-  RETURN occupancy_rate;
-END //
+-- Test 4: Check admin account
+SELECT admin_id, name, email, role FROM admins;
 
--- Function 2: Calculate Total Dues for a Student
-CREATE FUNCTION CalculateStudentDues(p_student_id INT)
-RETURNS DECIMAL(10,2)
-DETERMINISTIC
-READS SQL DATA
-BEGIN
-  DECLARE total_dues DECIMAL(10,2) DEFAULT 0.00;
-  DECLARE monthly_rent DECIMAL(10,2);
-  DECLARE months_stayed INT;
-  DECLARE total_paid DECIMAL(10,2) DEFAULT 0.00;
-  
-  SELECT 
-    r.price_per_month,
-    TIMESTAMPDIFF(MONTH, bk.start_date, CURDATE())
-  INTO monthly_rent, months_stayed
-  FROM bookings bk
-  INNER JOIN beds b ON bk.bed_id = b.bed_id
-  INNER JOIN rooms r ON b.room_id = r.room_id
-  WHERE bk.student_id = p_student_id 
-    AND bk.status = 'active'
-  LIMIT 1;
-  
-  IF monthly_rent IS NOT NULL AND months_stayed > 0 THEN
-    SET total_dues = monthly_rent * months_stayed;
-    
-    SELECT COALESCE(SUM(amount), 0) INTO total_paid
-    FROM payments p
-    INNER JOIN bookings bk ON p.booking_id = bk.booking_id
-    WHERE bk.student_id = p_student_id 
-      AND p.status = 'success';
-    
-    SET total_dues = total_dues - total_paid;
-    
-    IF total_dues < 0 THEN
-      SET total_dues = 0;
-    END IF;
-  END IF;
-  
-  RETURN total_dues;
-END //
-
--- Function 3: Get Available Beds Count for a Room
-CREATE FUNCTION GetAvailableBeds(p_room_id INT)
-RETURNS INT
-DETERMINISTIC
-READS SQL DATA
-BEGIN
-  DECLARE available_count INT DEFAULT 0;
-  
-  SELECT COUNT(*) INTO available_count
-  FROM beds
-  WHERE room_id = p_room_id AND status = 'available';
-  
-  RETURN available_count;
-END //
-
--- Function 4: Check if Student Has Active Booking
-CREATE FUNCTION HasActiveBooking(p_student_id INT)
-RETURNS TINYINT(1)
-DETERMINISTIC
-READS SQL DATA
-BEGIN
-  DECLARE has_booking TINYINT(1) DEFAULT 0;
-  
-  SELECT COUNT(*) > 0 INTO has_booking
-  FROM bookings
-  WHERE student_id = p_student_id 
-    AND status IN ('active', 'pending');
-  
-  RETURN has_booking;
-END //
-
--- Function 5: Calculate Total Revenue for a Hostel
-CREATE FUNCTION GetHostelRevenue(p_hostel_id INT)
-RETURNS DECIMAL(12,2)
-DETERMINISTIC
-READS SQL DATA
-BEGIN
-  DECLARE total_revenue DECIMAL(12,2) DEFAULT 0.00;
-  
-  SELECT COALESCE(SUM(p.amount), 0) INTO total_revenue
-  FROM payments p
-  INNER JOIN bookings bk ON p.booking_id = bk.booking_id
-  INNER JOIN beds b ON bk.bed_id = b.bed_id
-  INNER JOIN rooms r ON b.room_id = r.room_id
-  WHERE r.hostel_id = p_hostel_id 
-    AND p.status = 'success';
-  
-  RETURN total_revenue;
-END //
-
-DELIMITER ;
-
--- ============================================================================
--- SECTION 4: STORED PROCEDURES (Transaction Management)
--- ============================================================================
-
-DELIMITER //
-
--- Procedure 1: Allocate Bed with Two-Phase Locking
-CREATE PROCEDURE AllocateBedWithLock(
-  IN p_student_id INT,
-  IN p_bed_id INT,
-  IN p_start_date DATE,
-  IN p_end_date DATE
-)
-BEGIN
-  DECLARE bed_current_status VARCHAR(20);
-  DECLARE existing_booking INT;
-  DECLARE v_room_id INT;
-  
-  DECLARE EXIT HANDLER FOR SQLEXCEPTION
-  BEGIN
-    ROLLBACK;
-    RESIGNAL;
-  END;
-  
-  START TRANSACTION;
-  
-  -- Acquire exclusive lock on bed
-  SELECT status, room_id INTO bed_current_status, v_room_id
-  FROM beds
-  WHERE bed_id = p_bed_id
-  FOR UPDATE;
-  
-  -- Acquire shared lock on student bookings
-  SELECT COUNT(*) INTO existing_booking
-  FROM bookings
-  WHERE student_id = p_student_id 
-    AND status IN ('active', 'pending')
-  FOR SHARE;
-  
-  -- Validations
-  IF bed_current_status IS NULL THEN
-    SIGNAL SQLSTATE '45000'
-    SET MESSAGE_TEXT = 'Error: Bed not found';
-  END IF;
-  
-  IF bed_current_status != 'available' THEN
-    SIGNAL SQLSTATE '45000'
-    SET MESSAGE_TEXT = 'Error: Bed is not available for booking';
-  END IF;
-  
-  IF existing_booking > 0 THEN
-    SIGNAL SQLSTATE '45000'
-    SET MESSAGE_TEXT = 'Error: Student already has an active or pending booking';
-  END IF;
-  
-  IF p_end_date <= p_start_date THEN
-    SIGNAL SQLSTATE '45000'
-    SET MESSAGE_TEXT = 'Error: End date must be after start date';
-  END IF;
-  
-  -- Check for overlapping bookings
-  SELECT COUNT(*) INTO existing_booking
-  FROM bookings
-  WHERE bed_id = p_bed_id
-    AND status IN ('active', 'pending')
-    AND (
-      (p_start_date BETWEEN start_date AND end_date) OR
-      (p_end_date BETWEEN start_date AND end_date) OR
-      (start_date BETWEEN p_start_date AND p_end_date)
-    )
-  FOR SHARE;
-  
-  IF existing_booking > 0 THEN
-    SIGNAL SQLSTATE '45000'
-    SET MESSAGE_TEXT = 'Error: Bed has overlapping booking dates';
-  END IF;
-  
-  -- Create booking
-  INSERT INTO bookings (student_id, bed_id, start_date, end_date, status, created_at)
-  VALUES (p_student_id, p_bed_id, p_start_date, p_end_date, 'pending', NOW());
-  
-  COMMIT;
-  
-  SELECT 'Booking created successfully' AS message, LAST_INSERT_ID() AS booking_id;
-END //
-
--- Procedure 2: Process Payment with Transaction
-CREATE PROCEDURE ProcessPaymentWithTransaction(
-  IN p_booking_id INT,
-  IN p_amount DECIMAL(10,2),
-  IN p_mode VARCHAR(20),
-  IN p_transaction_id VARCHAR(100)
-)
-BEGIN
-  DECLARE v_bed_id INT;
-  DECLARE v_expected_amount DECIMAL(10,2);
-  
-  DECLARE EXIT HANDLER FOR SQLEXCEPTION
-  BEGIN
-    ROLLBACK;
-    SELECT 'Payment failed: Transaction rolled back' AS message, FALSE AS success;
-  END;
-  
-  START TRANSACTION;
-  
-  SELECT bed_id INTO v_bed_id
-  FROM bookings
-  WHERE booking_id = p_booking_id
-  FOR UPDATE;
-  
-  IF v_bed_id IS NULL THEN
-    SIGNAL SQLSTATE '45000'
-    SET MESSAGE_TEXT = 'Error: Booking not found';
-  END IF;
-  
-  SELECT r.price_per_month INTO v_expected_amount
-  FROM bookings bk
-  INNER JOIN beds b ON bk.bed_id = b.bed_id
-  INNER JOIN rooms r ON b.room_id = r.room_id
-  WHERE bk.booking_id = p_booking_id;
-  
-  IF p_amount != v_expected_amount AND p_amount != (v_expected_amount + 5000) THEN
-    SIGNAL SQLSTATE '45000'
-    SET MESSAGE_TEXT = 'Error: Invalid payment amount';
-  END IF;
-  
-  INSERT INTO payments (booking_id, amount, mode, status, transaction_id, created_at)
-  VALUES (p_booking_id, p_amount, p_mode, 'success', p_transaction_id, NOW());
-  
-  UPDATE bookings
-  SET status = 'active'
-  WHERE booking_id = p_booking_id;
-  
-  UPDATE beds
-  SET status = 'occupied'
-  WHERE bed_id = v_bed_id;
-  
-  COMMIT;
-  
-  SELECT 'Payment processed successfully' AS message, TRUE AS success, LAST_INSERT_ID() AS payment_id;
-END //
-
-DELIMITER ;
-
--- ============================================================================
--- SECTION 5: TRIGGERS (Data Integrity & Audit)
--- ============================================================================
-
-DELIMITER //
-
--- Trigger 1: Enhanced Bed Availability Check
-DROP TRIGGER IF EXISTS before_booking_insert//
-CREATE TRIGGER before_booking_insert
-BEFORE INSERT ON bookings
-FOR EACH ROW
-BEGIN
-  DECLARE bed_current_status VARCHAR(20);
-  DECLARE existing_booking_count INT;
-  
-  SELECT status INTO bed_current_status
-  FROM beds
-  WHERE bed_id = NEW.bed_id;
-  
-  IF bed_current_status != 'available' THEN
-    SIGNAL SQLSTATE '45000'
-    SET MESSAGE_TEXT = 'Cannot book: Bed is not available';
-  END IF;
-  
-  SELECT COUNT(*) INTO existing_booking_count
-  FROM bookings
-  WHERE bed_id = NEW.bed_id
-    AND status IN ('active', 'pending')
-    AND (
-      (NEW.start_date BETWEEN start_date AND end_date) OR
-      (NEW.end_date BETWEEN start_date AND end_date) OR
-      (start_date BETWEEN NEW.start_date AND NEW.end_date)
-    );
-  
-  IF existing_booking_count > 0 THEN
-    SIGNAL SQLSTATE '45000'
-    SET MESSAGE_TEXT = 'Cannot book: Bed has overlapping booking dates';
-  END IF;
-  
-  SELECT COUNT(*) INTO existing_booking_count
-  FROM bookings
-  WHERE student_id = NEW.student_id
-    AND status IN ('active', 'pending');
-  
-  IF existing_booking_count > 0 THEN
-    SIGNAL SQLSTATE '45000'
-    SET MESSAGE_TEXT = 'Cannot book: Student already has an active or pending booking';
-  END IF;
-  
-  IF NEW.end_date <= NEW.start_date THEN
-    SIGNAL SQLSTATE '45000'
-    SET MESSAGE_TEXT = 'Cannot book: End date must be after start date';
-  END IF;
-END//
-
--- Trigger 2: Auto-update Bed Status on Booking Status Change
-DROP TRIGGER IF EXISTS after_booking_update//
-CREATE TRIGGER after_booking_update
-AFTER UPDATE ON bookings
-FOR EACH ROW
-BEGIN
-  IF NEW.status = 'active' AND OLD.status != 'active' THEN
-    UPDATE beds
-    SET status = 'occupied'
-    WHERE bed_id = NEW.bed_id;
-  END IF;
-  
-  IF NEW.status IN ('cancelled', 'completed') AND OLD.status NOT IN ('cancelled', 'completed') THEN
-    UPDATE beds
-    SET status = 'available'
-    WHERE bed_id = NEW.bed_id;
-  END IF;
-END//
-
--- Trigger 3: Validate Payment Amount
-DROP TRIGGER IF EXISTS before_payment_insert//
-CREATE TRIGGER before_payment_insert
-BEFORE INSERT ON payments
-FOR EACH ROW
-BEGIN
-  DECLARE expected_amount DECIMAL(10,2);
-  
-  SELECT r.price_per_month INTO expected_amount
-  FROM bookings bk
-  INNER JOIN beds b ON bk.bed_id = b.bed_id
-  INNER JOIN rooms r ON b.room_id = r.room_id
-  WHERE bk.booking_id = NEW.booking_id;
-  
-  IF NEW.amount != expected_amount AND NEW.amount != (expected_amount + 5000) THEN
-    SIGNAL SQLSTATE '45000'
-    SET MESSAGE_TEXT = 'Invalid payment amount: Must match room rent or rent + security deposit';
-  END IF;
-END//
-
--- Trigger 4: Prevent Deletion of Active Bookings
-DROP TRIGGER IF EXISTS before_booking_delete//
-CREATE TRIGGER before_booking_delete
-BEFORE DELETE ON bookings
-FOR EACH ROW
-BEGIN
-  IF OLD.status = 'active' THEN
-    SIGNAL SQLSTATE '45000'
-    SET MESSAGE_TEXT = 'Cannot delete active booking: Cancel it first';
-  END IF;
-END//
-
--- Trigger 5: Log Booking Status Changes
-DROP TRIGGER IF EXISTS after_booking_status_change//
-CREATE TRIGGER after_booking_status_change
-AFTER UPDATE ON bookings
-FOR EACH ROW
-BEGIN
-  IF OLD.status != NEW.status THEN
-    INSERT INTO booking_audit_log (booking_id, old_status, new_status)
-    VALUES (NEW.booking_id, OLD.status, NEW.status);
-  END IF;
-END//
-
-DELIMITER ;
-
--- ============================================================================
--- SECTION 6: SAMPLE DATA (Optional - Comment out if not needed)
--- ============================================================================
-
--- Insert sample hostels
-INSERT INTO hostels (name, address, type, gender_allowed, total_rooms) VALUES
-('Vivek Hall', '123 Campus Road', 'Boys', 'Male', 50),
-('Sarojini Hall', '456 University Ave', 'Girls', 'Female', 40),
-('International House', '789 Global Street', 'Co-ed', 'Both', 60);
-
--- Insert sample admin
--- Password: admin123 (hashed with bcrypt)
-INSERT INTO admins (name, email, password, role) VALUES
-('Super Admin', 'admin@dormease.com', '$2a$10$rQZ9vXqZ9vXqZ9vXqZ9vXOeKfNjKfNjKfNjKfNjKfNjKfNjKfNjKf', 'super_admin');
-
--- ============================================================================
--- END OF SQL FILE
--- ============================================================================
-
--- To use this file:
--- 1. mysql -u root -p < complete_schema.sql
--- 2. Or import via MySQL Workbench
--- 3. Or run via Aiven console
-
--- Notes:
--- - All tables use InnoDB engine for transaction support
--- - Foreign keys have CASCADE delete for referential integrity
--- - Indexes are optimized for common query patterns
--- - Views provide abstraction layer for complex queries
--- - Functions encapsulate business logic
--- - Procedures implement ACID transactions with 2PL
--- - Triggers enforce data integrity constraints

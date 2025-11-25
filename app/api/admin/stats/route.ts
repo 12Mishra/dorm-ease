@@ -4,18 +4,51 @@ import { executeQuery } from "@/lib/sql";
 // GET /api/admin/stats - Dashboard statistics using views and aggregates
 export async function GET() {
   try {
-    // Query pre-built views
-    // Demonstrates: Database VIEWS, Aggregate functions, GROUP BY
+    // Hostel occupancy statistics
+    const occupancyQuery = `
+      SELECT 
+        h.hostel_id,
+        h.name AS hostel_name,
+        h.type AS hostel_type,
+        COUNT(DISTINCT r.room_id) AS total_rooms,
+        COUNT(DISTINCT bd.bed_id) AS total_beds,
+        COUNT(CASE WHEN bd.status = 'occupied' THEN 1 END) AS occupied_beds,
+        COUNT(CASE WHEN bd.status = 'available' THEN 1 END) AS available_beds,
+        COUNT(DISTINCT bk.booking_id) AS active_bookings,
+        ROUND(
+          (COUNT(CASE WHEN bd.status = 'occupied' THEN 1 END) / COUNT(DISTINCT bd.bed_id) * 100), 
+          2
+        ) AS occupancy_rate
+      FROM hostels h
+      LEFT JOIN rooms r ON r.hostel_id = h.hostel_id
+      LEFT JOIN beds bd ON bd.room_id = r.room_id
+      LEFT JOIN bookings bk ON bk.bed_id = bd.bed_id AND bk.status = 'active'
+      GROUP BY h.hostel_id, h.name, h.type
+      ORDER BY h.name
+    `;
     
-    // View: view_hostel_occupancy
-    const occupancy: any = await executeQuery(
-      "SELECT * FROM view_hostel_occupancy ORDER BY hostel_name"
-    );
+    const occupancy: any = await executeQuery(occupancyQuery);
     
-    // View: view_revenue_by_hostel
-    const revenue: any = await executeQuery(
-      "SELECT * FROM view_revenue_by_hostel ORDER BY hostel_name"
-    );
+    // Revenue by hostel
+    const revenueQuery = `
+      SELECT 
+        h.hostel_id,
+        h.name AS hostel_name,
+        COUNT(DISTINCT bk.booking_id) AS total_bookings,
+        SUM(p.amount) AS total_revenue,
+        AVG(p.amount) AS avg_payment,
+        COUNT(DISTINCT p.payment_id) AS successful_payments
+      FROM hostels h
+      JOIN rooms r ON r.hostel_id = h.hostel_id
+      JOIN beds bd ON bd.room_id = r.room_id
+      JOIN bookings bk ON bk.bed_id = bd.bed_id
+      JOIN payments p ON p.booking_id = bk.booking_id
+      WHERE p.status = 'success'
+      GROUP BY h.hostel_id, h.name
+      ORDER BY h.name
+    `;
+    
+    const revenue: any = await executeQuery(revenueQuery);
     
     // Additional aggregate queries for summary stats
     const summaryQuery = `
