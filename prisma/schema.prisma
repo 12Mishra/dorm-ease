@@ -19,6 +19,8 @@ model students {
   is_active  Boolean?         @default(true)
   gender     students_gender?
   bookings   bookings[]
+
+  @@index([email, department], map: "idx_student_email_dept")
 }
 
 model admins {
@@ -56,6 +58,7 @@ model rooms {
 
   @@unique([hostel_id, room_number], map: "unique_room")
   @@index([hostel_id], map: "idx_hostel_id")
+  @@index([hostel_id], map: "idx_room_hostel")
 }
 
 model beds {
@@ -70,6 +73,7 @@ model beds {
   @@unique([room_id, bed_number], map: "unique_bed")
   @@index([room_id], map: "idx_room_id")
   @@index([status], map: "idx_bed_status")
+  @@index([room_id, status], map: "idx_bed_room_status")
 }
 
 model bookings {
@@ -87,6 +91,8 @@ model bookings {
   @@index([student_id], map: "idx_student_id")
   @@index([bed_id], map: "idx_bed_id")
   @@index([status], map: "idx_booking_status")
+  @@index([start_date, end_date], map: "idx_booking_dates")
+  @@index([student_id, status], map: "idx_booking_student_status")
 }
 
 model payments {
@@ -101,6 +107,8 @@ model payments {
 
   @@index([booking_id], map: "idx_booking_id")
   @@index([status], map: "idx_payment_status")
+  @@index([booking_id], map: "idx_payment_booking")
+  @@index([status, created_at], map: "idx_payment_status_date")
 }
 
 enum hostels_type {
