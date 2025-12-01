@@ -6,7 +6,7 @@ import { Building2, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 export default function AddHostelForm() {
     const [formData, setFormData] = useState({
         name: "",
-        type: "Student",
+        type: "Boys",
         gender_allowed: "Co-ed",
         address: "",
     });
@@ -43,7 +43,7 @@ export default function AddHostelForm() {
                 setMessage({ type: "success", text: "Hostel added successfully!" });
                 setFormData({
                     name: "",
-                    type: "Student",
+                    type: "Boys",
                     gender_allowed: "Co-ed",
                     address: "",
                 });
@@ -99,9 +99,9 @@ export default function AddHostelForm() {
                             value={formData.type}
                             onChange={handleChange}
                         >
-                            <option value="Student">Student</option>
-                            <option value="Faculty">Faculty</option>
-                            <option value="Guest">Guest</option>
+                            <option value="Boys">Boys</option>
+                            <option value="Girls">Girls</option>
+                            <option value="Co-ed">Co-ed</option>
                         </select>
                     </div>
                     <div>

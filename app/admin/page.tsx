@@ -4,6 +4,7 @@ import Link from "next/link";
 import AddStudentForm from "@/components/AddStudentForm";
 import AddHostelForm from "@/components/AddHostelForm";
 import NavBar from "@/components/NavBar";
+
 interface Summary {
   total_students: number;
   total_bookings: number;
@@ -12,18 +13,22 @@ interface Summary {
   available_beds: number;
   occupied_beds: number;
 }
+
 interface Occupancy {
   hostel_name: string;
   total_beds: number;
   occupied_beds: number;
   available_beds: number;
   occupancy_rate: number;
+  hostel_id: number;
 }
+
 interface Revenue {
   hostel_name: string;
   total_bookings: number;
   total_revenue: string;
 }
+
 interface Booking {
   booking_id: number;
   student_name: string;
@@ -34,6 +39,7 @@ interface Booking {
   status: string;
   created_at: string;
 }
+
 export default function AdminPage() {
   const [stats, setStats] = useState<{
     summary: Summary | null;
@@ -47,9 +53,11 @@ export default function AdminPage() {
     recent_bookings: [],
   });
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     fetchStats();
   }, []);
+
   const fetchStats = async () => {
     try {
       setLoading(true);
@@ -64,6 +72,46 @@ export default function AdminPage() {
       setLoading(false);
     }
   };
+
+  const handleActivateBooking = async (bookingId: number) => {
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "active" }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchStats(); // Refresh data
+      } else {
+        alert("Failed to activate booking: " + data.error);
+      }
+    } catch (error) {
+      console.error("Error activating booking:", error);
+      alert("Error activating booking");
+    }
+  };
+
+  const handleDeleteHostel = async (hostelId: number) => {
+    if (!confirm("Are you sure you want to delete this hostel? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/hostels/${hostelId}`, {
+        method: "DELETE",
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchStats(); // Refresh data
+      } else {
+        alert("Failed to delete hostel: " + data.error);
+      }
+    } catch (error) {
+      console.error("Error deleting hostel:", error);
+      alert("Error deleting hostel");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -74,29 +122,13 @@ export default function AdminPage() {
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      {/* <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <nav className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-bold text-blue-600">
-              DormEase
-            </Link>
-            <div className="flex gap-4">
-              <Link href="/hostels" className="text-gray-700 hover:text-blue-600">
-                Hostels
-              </Link>
-              <Link href="/admin" className="text-blue-600 font-medium">
-                Admin
-              </Link>
-            </div>
-          </nav>
-        </div>
-      </header> */}
       <NavBar />
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8 text-black">Admin Dashboard</h1>
+
         {/* Summary Cards */}
         {stats.summary && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -126,6 +158,7 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
         {/* Management Forms */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <AddStudentForm />
@@ -141,27 +174,14 @@ export default function AdminPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">
-                    Booking ID
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">
-                    Student
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">
-                    Hostel
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">
-                    Room
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">
-                    Bed
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">
-                    Start Date
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">
-                    Status
-                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Booking ID</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Student</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Hostel</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Room</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Bed</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Start Date</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -172,21 +192,30 @@ export default function AdminPage() {
                     <td className="py-3 px-4 text-black">{booking.hostel_name}</td>
                     <td className="py-3 px-4 text-black">{booking.room_number}</td>
                     <td className="py-3 px-4 text-black">{booking.bed_number}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 text-black">
                       {new Date(booking.start_date).toLocaleDateString()}
                     </td>
                     <td className="py-3 px-4">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${booking.status === "active"
-                          ? "bg-green-100 text-green-800"
-                          : booking.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-gray-100 text-gray-800"
+                            ? "bg-green-100 text-green-800"
+                            : booking.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-gray-100 text-gray-800"
                           }`}
                       >
-                        {booking.status.charAt(0).toUpperCase() +
-                          booking.status.slice(1)}
+                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                       </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      {booking.status === "pending" && (
+                        <button
+                          onClick={() => handleActivateBooking(booking.booking_id)}
+                          className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors"
+                        >
+                          Mark Active
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -194,6 +223,7 @@ export default function AdminPage() {
             </table>
           </div>
         </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Hostel Occupancy */}
           <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -204,18 +234,11 @@ export default function AdminPage() {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">
-                      Hostel
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">
-                      Total Beds
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">
-                      Occupied
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">
-                      Rate
-                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Hostel</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Total Beds</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Occupied</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Rate</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -226,8 +249,16 @@ export default function AdminPage() {
                       <td className="py-3 px-4 text-black">{occ.occupied_beds}</td>
                       <td className="py-3 px-4">
                         <span className="text-blue-600 font-semibold">
-                          {parseFloat(occ.occupancy_rate.toString() || "0").toFixed(1)}%
+                          {parseFloat(occ.occupancy_rate?.toString() || "0").toFixed(1)}%
                         </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={() => handleDeleteHostel(occ.hostel_id)}
+                          className="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors"
+                        >
+                          Delete
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -235,6 +266,7 @@ export default function AdminPage() {
               </table>
             </div>
           </div>
+
           {/* Revenue by Hostel */}
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="px-6 py-4 border-b">
@@ -244,15 +276,9 @@ export default function AdminPage() {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">
-                      Hostel
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">
-                      Bookings
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">
-                      Revenue
-                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Hostel</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Bookings</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Revenue</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -261,7 +287,7 @@ export default function AdminPage() {
                       <td className="py-3 px-4 font-medium text-black">{rev.hostel_name}</td>
                       <td className="py-3 px-4 text-black">{rev.total_bookings}</td>
                       <td className="py-3 px-4 text-green-600 font-semibold">
-                        ₹{parseInt(rev.total_revenue).toLocaleString("en-IN")}
+                        ₹{parseInt(rev.total_revenue?.toString() || "0").toLocaleString("en-IN")}
                       </td>
                     </tr>
                   ))}

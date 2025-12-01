@@ -20,6 +20,12 @@ export async function executeQuery<T = any>(
   params?: any[]
 ): Promise<T> {
   try {
+    // Log the query and parameters
+    console.log(`\n\x1b[36m[SQL] Executing Query:\x1b[0m ${query}`);
+    if (params && params.length > 0) {
+      console.log(`\x1b[33m[SQL] Parameters:\x1b[0m ${JSON.stringify(params)}`);
+    }
+
     const [rows] = await sqlPool.query(query, params);
     return rows as T;
   } catch (error) {
