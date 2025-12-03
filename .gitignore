@@ -37,7 +37,7 @@ next-env.d.ts
 /prisma/migrations
 
 #.md files
-README.md
+
 SETUPGUIDE.md
 SSL_FIX.md
 /db/DBMS_CONCEPTS.md
