@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { executeQuery } from "@/lib/sql";
 
-// POST /api/bookings - Create booking using stored procedure
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -15,7 +14,6 @@ export async function POST(request: Request) {
     }
     
     
-    // Validate dates
     if (new Date(end_date) <= new Date(start_date)) {
       return NextResponse.json(
         { success: false, error: "End date must be after start date" },
@@ -23,7 +21,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if bed exists and is available
     const bedCheck = await executeQuery(
       "SELECT status FROM beds WHERE bed_id = ?",
       [bed_id]
@@ -43,7 +40,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check for overlapping bookings
     const overlappingBookings = await executeQuery(
       `SELECT COUNT(*) as count FROM bookings 
        WHERE bed_id = ? 
@@ -63,7 +59,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create booking
     const bookingResult = await executeQuery(
       "INSERT INTO bookings (student_id, bed_id, start_date, end_date, status) VALUES (?, ?, ?, ?, 'pending')",
       [student_id, bed_id, start_date, end_date]
@@ -71,7 +66,6 @@ export async function POST(request: Request) {
 
     const bookingId = (bookingResult as any).insertId;
 
-    // Update bed status to occupied
     await executeQuery(
       "UPDATE beds SET status = 'occupied' WHERE bed_id = ?",
       [bed_id]
@@ -95,14 +89,11 @@ export async function POST(request: Request) {
   }
 }
 
-// GET /api/bookings - List all bookings with details
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const bookingId = searchParams.get("id");
 
-    // Raw SQL with 4-table JOIN
-    // Demonstrates: Complex multi-table INNER JOIN
     let query = `
       SELECT 
         bk.booking_id,

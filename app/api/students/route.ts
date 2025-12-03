@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 
-// GET /api/students - List all students
 export async function GET() {
   try {
     const students = await prisma.students.findMany({
@@ -19,7 +18,6 @@ export async function GET() {
   }
 }
 
-// POST /api/students - Create new student
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -43,7 +41,6 @@ export async function POST(request: Request) {
     
     return NextResponse.json({ success: true, student }, { status: 201 });
   } catch (error: any) {
-    // Handle unique constraint violation
     if (error.code === "P2002") {
       return NextResponse.json(
         { success: false, error: "Email already exists" },

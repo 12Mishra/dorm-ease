@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 import { executeQuery } from "@/lib/sql";
 
-// GET /api/availability - Get available beds with subquery
 export async function GET() {
   try {
-    // Raw SQL query with subquery and NOT IN
-    // Demonstrates: Subquery, NOT IN, multi-table JOIN
     const query = `
       SELECT 
         b.bed_id,

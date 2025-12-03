@@ -67,7 +67,6 @@ export default function StudentDashboard() {
 
     const fetchDashboardData = async () => {
         try {
-            // Fetch session
             const sessionRes = await fetch("/api/auth/session");
             const sessionData = await sessionRes.json();
 
@@ -78,14 +77,12 @@ export default function StudentDashboard() {
 
             setUser(sessionData.user);
 
-            // Fetch current booking
             const bookingRes = await fetch(`/api/students/${sessionData.user.id}/booking`);
             const bookingData = await bookingRes.json();
             if (bookingData.success && bookingData.booking) {
                 setBooking(bookingData.booking);
             }
 
-            // Fetch payment history
             const paymentsRes = await fetch(`/api/students/${sessionData.user.id}/payments`);
             const paymentsData = await paymentsRes.json();
             if (paymentsData.success) {
@@ -99,7 +96,6 @@ export default function StudentDashboard() {
     };
 
     const downloadReceipt = async (paymentId: number) => {
-        // TODO: Implement PDF generation
         alert(`Downloading receipt for payment #${paymentId}`);
     };
 
@@ -120,16 +116,13 @@ export default function StudentDashboard() {
             <NavBar />
 
             <div className="container mx-auto px-4 py-8 max-w-7xl">
-                {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900">My Dashboard</h1>
                     <p className="text-gray-600 mt-1">Welcome back, {user.name}!</p>
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-6">
-                    {/* Left Column - Booking & Profile */}
                     <div className="lg:col-span-2 space-y-6">
-                        {/* Current Booking */}
                         <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
@@ -219,7 +212,6 @@ export default function StudentDashboard() {
                             )}
                         </div>
 
-                        {/* Payment History */}
                         <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
@@ -291,7 +283,6 @@ export default function StudentDashboard() {
                         </div>
                     </div>
 
-                    {/* Right Column - Profile */}
                     <div className="space-y-6">
                         <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
                             <div className="flex items-center gap-3 mb-6">

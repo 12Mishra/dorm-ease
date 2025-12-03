@@ -82,7 +82,7 @@ export default function AdminPage() {
       });
       const data = await response.json();
       if (data.success) {
-        fetchStats(); // Refresh data
+        fetchStats(); 
       } else {
         alert("Failed to activate booking: " + data.error);
       }
@@ -102,7 +102,7 @@ export default function AdminPage() {
       });
       const data = await response.json();
       if (data.success) {
-        fetchStats(); // Refresh data
+        fetchStats(); 
       } else {
         alert("Failed to delete hostel: " + data.error);
       }
@@ -129,7 +129,6 @@ export default function AdminPage() {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8 text-black">Admin Dashboard</h1>
 
-        {/* Summary Cards */}
         {stats.summary && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="bg-white rounded-lg shadow p-6">
@@ -159,13 +158,11 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Management Forms */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <AddStudentForm />
           <AddHostelForm />
         </div>
 
-        {/* Recent Bookings */}
         <div className="bg-white rounded-lg shadow mb-8 overflow-hidden">
           <div className="px-6 py-4 border-b">
             <h2 className="text-xl font-bold text-black">Recent Bookings</h2>
@@ -225,7 +222,6 @@ export default function AdminPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Hostel Occupancy */}
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="px-6 py-4 border-b">
               <h2 className="text-xl font-bold text-black">Hostel Occupancy</h2>
@@ -267,7 +263,6 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Revenue by Hostel */}
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="px-6 py-4 border-b">
               <h2 className="text-xl font-bold text-black">Revenue by Hostel</h2>

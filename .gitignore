@@ -41,6 +41,8 @@ README.md
 SETUPGUIDE.md
 SSL_FIX.md
 /db/DBMS_CONCEPTS.md
+DATABASE_ARCHITECTURE.md
+SETUP_GUIDE.md
 
 /db/run-migrations.js
 /db/migrations

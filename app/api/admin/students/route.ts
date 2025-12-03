@@ -7,7 +7,6 @@ import { sessionOptions, SessionData } from "@/lib/session";
 
 export async function POST(request: Request) {
   try {
-    // Check authentication
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
     if (!session.user?.isLoggedIn || session.user.role !== "admin" && session.user.role !== "super_admin") {
       return NextResponse.json(
@@ -16,10 +15,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get student data from request
     const { name, email, department, year, phone, gender } = await request.json();
 
-    // Validate required fields
     if (!name || !email || !department || !year || !phone || !gender) {
       return NextResponse.json(
         { success: false, error: "All fields are required" },
@@ -27,10 +24,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Hash email as initial password
     const hashedPassword = await hashPassword(email);
 
-    // Insert student into database
     const query = `
       INSERT INTO students (name, email, department, year, phone, gender, password)
       VALUES (?, ?, ?, ?, ?, ?, ?)

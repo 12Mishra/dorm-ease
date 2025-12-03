@@ -4,7 +4,6 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 
-// GET /api/rooms - List rooms with filters using raw SQL JOIN
 export async function GET(request: Request) {
   try {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
@@ -16,7 +15,6 @@ export async function GET(request: Request) {
     const minPrice = searchParams.get("min_price") || "0";
     const maxPrice = searchParams.get("max_price") || "999999";
 
-    // Gender and Year filter logic
     let genderFilter = "1=1"; 
     let yearFilter = "1=1";
     let genderParam = null;
@@ -32,14 +30,12 @@ export async function GET(request: Request) {
         genderParam = "Female";
       }
 
-      // Year Filter
       if (user.year) {
         yearFilter = "h.allowed_year = ?";
         yearParam = user.year;
       }
     }
     
-    // Raw SQL query with JOIN and filtering
     const query = `
       SELECT 
         r.room_id,

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { executeQuery } from "@/lib/sql";
 
-// GET /api/students/[id]/payments - Get payment history for a student
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { executeQuery } from "@/lib/sql";
 
-// POST /api/payments - Process payment
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -16,21 +15,17 @@ export async function POST(request: Request) {
 
     const transactionId = crypto.randomUUID();
 
-    // Start Transaction (Simulated with sequential queries for now, ideally use a transaction block if supported by lib)
-    // 1. Create Payment Record
     await executeQuery(
       "INSERT INTO payments (booking_id, amount, mode, status, transaction_id) VALUES (?, ?, ?, 'success', ?)",
       [booking_id, amount, payment_method || "Online", transactionId]
     );
 
-    // 2. Update Booking Status to 'active'
     await executeQuery(
       "UPDATE bookings SET status = 'active' WHERE booking_id = ?",
       [booking_id]
     );
 
-    // 3. Update Bed Status to 'occupied' (Ensure it's occupied)
-    // First get the bed_id from booking
+
     const booking = await executeQuery(
       "SELECT bed_id FROM bookings WHERE booking_id = ?",
       [booking_id]

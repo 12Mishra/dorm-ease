@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { executeQuery } from "@/lib/sql";
 
-// GET /api/admin/stats - Dashboard statistics using views and aggregates
 export async function GET() {
   try {
-    // Hostel occupancy statistics
     const occupancyQuery = `
       SELECT 
         h.hostel_id,
@@ -29,7 +27,6 @@ export async function GET() {
     
     const occupancy: any = await executeQuery(occupancyQuery);
     
-    // Revenue by hostel
     const revenueQuery = `
       SELECT 
         h.hostel_id,
@@ -50,7 +47,6 @@ export async function GET() {
     
     const revenue: any = await executeQuery(revenueQuery);
     
-    // Additional aggregate queries for summary stats
     const summaryQuery = `
       SELECT 
         COUNT(DISTINCT s.student_id) AS total_students,
@@ -76,7 +72,6 @@ export async function GET() {
     const summaryResult: any = await executeQuery(summaryQuery);
     const summary = summaryResult[0];
     
-    // Recent bookings
     const recentBookingsQuery = `
       SELECT 
         bk.booking_id,

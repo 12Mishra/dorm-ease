@@ -20,7 +20,6 @@ export default function Home() {
             Streamlined hostel room booking and management for students. Find your perfect accommodation on campus.
           </p>
 
-          {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16">
             <a
               href="/hostels"
@@ -37,7 +36,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Features Section */}
         <section className="py-12 grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all border border-gray-100">
             <div className="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center mb-6">
@@ -70,7 +68,6 @@ export default function Home() {
           </div>
         </section>
         
-        {/* Stats Section */}
         <section className="py-16 grid md:grid-cols-4 gap-8 max-w-5xl mx-auto text-center">
           <div className="bg-white rounded-2xl p-8 shadow-lg">
             <div className="text-4xl font-bold text-indigo-600 mb-2">800+</div>
@@ -90,7 +87,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Info Section */}
         <section className="py-16 max-w-4xl mx-auto">
           <div className="bg-white rounded-3xl shadow-xl p-10 border border-gray-100">
             <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">
@@ -129,7 +125,6 @@ export default function Home() {
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="bg-gray-900 text-gray-400 py-12 mt-24">
         <div className="container mx-auto px-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-4">

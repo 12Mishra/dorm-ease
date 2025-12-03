@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { executeQuery } from "@/lib/sql";
 
-// GET /api/rooms/[id] - Get room details with beds
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -9,8 +8,6 @@ export async function GET(
   try {
     const { id } = await params;
     
-    // Raw SQL query with multiple JOINs
-    // Demonstrates: INNER JOIN, LEFT JOIN, complex multi-table query
     const query = `
       SELECT 
         r.room_id,
@@ -43,7 +40,6 @@ export async function GET(
       );
     }
     
-    // Transform flat result into nested structure
     const room = {
       room_id: results[0].room_id,
       room_number: results[0].room_number,

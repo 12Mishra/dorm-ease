@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { executeQuery } from "@/lib/sql";
 
-// PATCH /api/bookings/[id] - Update booking status
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -20,15 +19,12 @@ export async function PATCH(
     }
 
     if (status === 'active') {
-      // 1. Check if payment exists
       const payments = await executeQuery(
         "SELECT payment_id FROM payments WHERE booking_id = ? AND status = 'success'",
         [bookingId]
       );
 
-      // 2. If no payment, create one with room price
       if (payments.length === 0) {
-        // Get room price
         const priceResult = await executeQuery(
           `SELECT r.price_per_semester 
            FROM bookings bk
@@ -49,20 +45,17 @@ export async function PATCH(
         }
       }
 
-      // 3. Update booking status
       await executeQuery(
         "UPDATE bookings SET status = 'active' WHERE booking_id = ?",
         [bookingId]
       );
 
-      // 4. Get bed_id
       const booking = await executeQuery(
         "SELECT bed_id FROM bookings WHERE booking_id = ?",
         [bookingId]
       );
 
       if (booking.length > 0) {
-        // 5. Update bed status to occupied
         await executeQuery(
           "UPDATE beds SET status = 'occupied' WHERE bed_id = ?",
           [booking[0].bed_id]

@@ -10,23 +10,17 @@ export async function GET() {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
     const user = session.user;
 
-    // Default: No filter (Admin sees all, or public sees all if you want)
     let whereClause: any = {};
 
-    // FILTER LOGIC:
-    // Only apply filters if the user is logged in AND is a student.
-    // Admins will skip this block and see everything.
     if (user && user.isLoggedIn && user.role === "student") {
       const filters: any = {};
 
-      // Gender Filter
       if (user.gender === "Male") {
         filters.gender_allowed = "Male";
       } else if (user.gender === "Female") {
         filters.gender_allowed = "Female";
       }
 
-      // Year Filter
       if (user.year) {
         filters.allowed_year = user.year;
       }
@@ -58,7 +52,6 @@ export async function GET() {
   }
 }
 
-// POST /api/hostels - Create new hostel
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -75,7 +68,7 @@ export async function POST(request: Request) {
       data: {
         name,
         type,
-        gender_allowed, // Ensure your DB stores "Male" or "Female" exactly
+        gender_allowed, 
         address,
       },
     });

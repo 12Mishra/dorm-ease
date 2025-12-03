@@ -52,7 +52,7 @@ export default function PaymentPage() {
             if (data.success && data.bookings && data.bookings.length > 0) {
                 setBooking(data.bookings[0]);
             } else {
-                // Handle not found
+                alert("Booking not found");
             }
         } catch (error) {
             console.error("Error fetching booking:", error);

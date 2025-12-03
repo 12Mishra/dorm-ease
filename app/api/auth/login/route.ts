@@ -24,19 +24,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // For migration: if password matches email (plain text), it's a first-time login
-    // In a real app, we would force a password change here.
-    // For this requirement ("default password... as the email"), we check:
-    // 1. Is it a hashed password? (starts with $2a$ or similar)
-    // 2. Or is it the plain text email?
     
     let isValid = false;
     
-    // Check if stored password is a bcrypt hash
     if (user.password.startsWith("$2a$") || user.password.startsWith("$2b$")) {
       isValid = await verifyPassword(password, user.password);
     } else {
-      // Fallback for legacy/plain text (shouldn't happen with our migration script, but good for safety)
       isValid = password === user.password;
     }
 
@@ -47,7 +40,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create session
     const cookieStore = await cookies();
     const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
     session.user = {
